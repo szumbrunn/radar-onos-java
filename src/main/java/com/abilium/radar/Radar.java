@@ -45,11 +45,18 @@ public class Radar {
         int niters = 20;
     	
         // return top m instances
-        int m = 2;
+        int m = 11;
         
         // get the anomaly score list for the graph
-		List<Node> score = RadarImpl.scoreFromRadar(X, A, alpha, beta, gamma, niters, m);
+		
     	
+
+		
+		List<DataLog> data = LogFileParser.dataFromLogFile("onos-log.txt");
+		DataLog d = data.get(0);
+		RadarImpl.printMatrix(d.getAdjMatrix());
+		List<Node> score = RadarImpl.scoreFromRadar(d.getTxMatrix().add(d.getRxMatrix()), d.getAdjMatrix(), alpha, beta, gamma, niters, m);
+		
 		// print the score list
 		System.out.println(Arrays.toString(score.toArray()));
   	}
