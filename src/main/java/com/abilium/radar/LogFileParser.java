@@ -4,23 +4,22 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
 
-import org.ojalgo.array.ArrayUtils;
 import org.ojalgo.matrix.BasicMatrix;
 import org.ojalgo.matrix.PrimitiveMatrix;
 import org.ojalgo.matrix.BasicMatrix.Factory;
-import org.ojalgo.matrix.store.PhysicalStore;
-import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.ojalgo.netio.BufferedInputStreamReader;
 
+/**
+ * parses log file from Onos ML-Controller 
+ * @author S. Zumbrunn
+ *
+ */
 public class LogFileParser {
 	
-	private static PhysicalStore.Factory<Double, PrimitiveDenseStore> storeFactory =
-            PrimitiveDenseStore.FACTORY;
 	private static Factory<BasicMatrix> matrixFactory = PrimitiveMatrix.FACTORY;
 	
 	public static InputStream getStreamFromResourceFile(String name) {
@@ -54,12 +53,9 @@ public class LogFileParser {
  		}
 		
 		double[][] matrArray = new double[strRows.length][colSize];
-		
 		for (int i = 0; i < matrix.size(); i++) {
-		    // Simpler changes here
 		    matrArray[i] = matrix.get(i).clone();
 		}
-		
 		matrArray = matrix.toArray(matrArray);
 		
 		return matrixFactory.rows(matrArray);
