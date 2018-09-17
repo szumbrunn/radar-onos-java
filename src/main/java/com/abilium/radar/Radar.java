@@ -40,7 +40,7 @@ public class Radar {
         // hyperparameters
         double alpha = 0.01;
         double beta = 0.01;
-        double gamma = 0.1;
+        double gamma = 0.5;
         
         BasicMatrix X = matrixFactory.rows(dX);
         BasicMatrix A = matrixFactory.rows(dA);
@@ -64,8 +64,11 @@ public class Radar {
 		Date date = new Date();
 		while(it.hasNext()) {
 			DataLog d = it.next();
-			scores.add(RadarImpl.scoreFromRadar(d.getRxMatrix().subtract(d.getTxMatrix()),
-												d.getAdjMatrix(), alpha, beta, gamma, niters, m));
+			List<Node> score = RadarImpl.scoreFromRadar(d.getRxMatrix().add(d.getTxMatrix()),
+					d.getAdjMatrix(), alpha, beta, gamma, niters, m);
+			scores.add(score);
+			System.out.println(score);
+			
 		}
 		System.out.println("Calculation took " + (new Date().getTime()-date.getTime()) + "ms");
 		
