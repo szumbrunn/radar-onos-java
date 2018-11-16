@@ -22,9 +22,9 @@ repositories {
 }
 
 dependencies {
-    compile 'com.google.guava:guava:21.0'  
+//    compile 'com.google.guava:guava:21.0'  
 
-	compile group: 'org.ojalgo', name: 'ojalgo', version: '31.0'
+	compile group: 'org.ojalgo', name: 'ojalgo', version: '46.3.0'
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'

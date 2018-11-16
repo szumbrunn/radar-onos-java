@@ -7,8 +7,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.ojalgo.matrix.BasicMatrix;
-import org.ojalgo.matrix.BasicMatrix.Factory;
+import org.ojalgo.matrix.MatrixFactory;
 import org.ojalgo.matrix.PrimitiveMatrix;
 
 public class Radar {
@@ -19,7 +18,7 @@ public class Radar {
 	 */
     public static void main(String[] args) {
     	
-    	Factory<BasicMatrix> matrixFactory = PrimitiveMatrix.FACTORY;
+    	MatrixFactory<Double, PrimitiveMatrix> matrixFactory = PrimitiveMatrix.FACTORY;
     	
     	// Adjacency matrix for a graph having 4 nodes and 4 edges
     	double[][] dA = {
@@ -42,8 +41,8 @@ public class Radar {
         double beta = 0.01;
         double gamma = 0.5;
         
-        BasicMatrix X = matrixFactory.rows(dX);
-        BasicMatrix A = matrixFactory.rows(dA);
+        PrimitiveMatrix X = matrixFactory.rows(dX);
+        PrimitiveMatrix A = matrixFactory.rows(dA);
         
         // define number of maximum iterations
         int niters = 20;
@@ -53,10 +52,10 @@ public class Radar {
         
         // get the anomaly score list for the graph
 		
-    	
+    	System.out.println(Arrays.toString(RadarImpl.scoreFromRadar(X, A, alpha, beta, gamma, niters, m).toArray()));
 
 		
-		List<DataLog> data = LogFileParser.dataFromLogFile("onos-log.txt");
+	/*	List<DataLog> data = LogFileParser.dataFromLogFile("onos-log-2.txt");
 		
 		List<List<Node>> scores = new ArrayList<>();
 		Iterator<DataLog> it = data.iterator();
@@ -76,7 +75,8 @@ public class Radar {
 		System.out.println("Average value is: " + avg(scores));
 		System.out.println("Median value is: " + median(scores));
 		System.out.println("Minimum value is: " + min(scores));
-		System.out.println(createHistogram(scores, 10, 50));
+		System.out.println(createHistogram(scores, 10, 50));*/
+        
   	}
     
     private static String createHistogram(List<List<Node>> scores, int steps, int span) {

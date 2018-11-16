@@ -1,17 +1,20 @@
 package com.abilium.radar;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
 
 import org.ojalgo.matrix.BasicMatrix;
+import org.ojalgo.matrix.MatrixFactory;
 import org.ojalgo.matrix.PrimitiveMatrix;
-import org.ojalgo.matrix.BasicMatrix.Factory;
-import org.ojalgo.netio.BufferedInputStreamReader;
 
 /**
  * parses log file from Onos ML-Controller 
@@ -20,7 +23,7 @@ import org.ojalgo.netio.BufferedInputStreamReader;
  */
 public class LogFileParser {
 	
-	private static Factory<BasicMatrix> matrixFactory = PrimitiveMatrix.FACTORY;
+	private static MatrixFactory<Double, PrimitiveMatrix> matrixFactory = PrimitiveMatrix.FACTORY;
 	
 	public static InputStream getStreamFromResourceFile(String name) {
 		return LogFileParser.class.getClassLoader().getResourceAsStream(name);
@@ -36,7 +39,7 @@ public class LogFileParser {
 		return dataLog;
 	}
 
-	private static BasicMatrix getMatrixFromString(String string) {
+	private static PrimitiveMatrix getMatrixFromString(String string) {
 		List<double[]> matrix = new ArrayList<>();
 		String[] strRows = string.split("\\;");
 		int colSize = 0;
@@ -65,7 +68,7 @@ public class LogFileParser {
 		List<DataLog> list = new ArrayList<>();
 		
 		InputStream is = getStreamFromResourceFile(name);
-		BufferedReader reader = new BufferedInputStreamReader(is);
+		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 		String line = "";
 		try {
 			while((line = reader.readLine())!=null) {

@@ -1,13 +1,14 @@
 package com.abilium.radar;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.ojalgo.function.implementation.PrimitiveFunction;
-import org.ojalgo.matrix.BasicMatrix;
 import org.ojalgo.matrix.PrimitiveMatrix;
-import org.ojalgo.matrix.BasicMatrix.Factory;
+import org.ojalgo.function.PrimitiveFunction;
+import org.ojalgo.matrix.BasicMatrix;
+import org.ojalgo.matrix.MatrixFactory;
 import org.ojalgo.matrix.store.PhysicalStore;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.ojalgo.scalar.Scalar;
@@ -22,7 +23,8 @@ import org.ojalgo.scalar.Scalar;
  */
 public class RadarImpl {
 
-	private static Factory<BasicMatrix> matrixFactory = PrimitiveMatrix.FACTORY;
+	
+	private static MatrixFactory<Double, PrimitiveMatrix> matrixFactory = PrimitiveMatrix.FACTORY;
 	private static PhysicalStore.Factory<Double, PrimitiveDenseStore> storeFactory =
             PrimitiveDenseStore.FACTORY;
 	
@@ -36,15 +38,14 @@ public class RadarImpl {
 	 * @param niters maximum number of iterations
 	 * @return ordered score list
 	 */
-	public static List<Node> scoreFromRadar(BasicMatrix X, BasicMatrix A, double alpha, double beta, double gamma, int niters, int m) {
-		int n = X.getColDim();
-		BasicMatrix colVector = matrixFactory.makeZero(n, 1).add(1); // make 1 row vector
+	public static List<Node> scoreFromRadar(PrimitiveMatrix X, PrimitiveMatrix A, double alpha, double beta, double gamma, int niters, int m) {
+		long n = X.columns().count();
+		PrimitiveMatrix colVector = matrixFactory.makeZero(n, 1).add(1); // make 1 row vector
 		
-    	BasicMatrix R = RadarImpl.radar(X, A, alpha, beta, gamma, niters);
+		PrimitiveMatrix R = RadarImpl.radar(X, A, alpha, beta, gamma, niters);
 
 		List<Double> scoreList = R.multiplyElements(R)
-								.multiplyRight(colVector)
-								.toPrimitiveStore().asList();
+								.multiply(colVector).getSingularValues();
 		List<Node> score = new ArrayList<>();
 		for(int i=0;i<scoreList.size();i++) {
  			score.add(new Node(i,scoreList.get(i)));
@@ -66,61 +67,60 @@ public class RadarImpl {
 	 * @param niters maximum number of iterations
 	 * @return anomaly score as matrix
 	 */
-	public static BasicMatrix radar(BasicMatrix X, BasicMatrix A, double alpha, double beta, double gamma, int niters) {
+	public static PrimitiveMatrix radar(PrimitiveMatrix X, PrimitiveMatrix A, double alpha, double beta, double gamma, int niters) {
 		
-		int n = X.getRowDim();
-		int m = X.getColDim();
-		BasicMatrix vector = matrixFactory.makeZero(n, 1).add(1); // make 1 row vector
-		BasicMatrix vectorCol = matrixFactory.makeZero(m, 1).add(1); // make 1 row vector
+		long n = A.rows().count();
+		long m = A.columns().count();
+		PrimitiveMatrix vector = matrixFactory.makeZero(n, 1).add(1); // make 1 row vector
+		PrimitiveMatrix vectorCol = matrixFactory.makeZero(m, 1).add(1); // make 1 row vector
 		
-		BasicMatrix D = makeDiagonal(A.multiplyRight(vector));
+		PrimitiveMatrix D = makeDiagonal(A.multiply(vector));
 		
-		BasicMatrix L = D.subtract(A);
+		PrimitiveMatrix L = D.subtract(A);
 		
-		BasicMatrix Dr = matrixFactory.makeEye(n, n);
-		BasicMatrix Dw = matrixFactory.makeEye(n, n);
+		PrimitiveMatrix Dr = matrixFactory.makeEye(n, n);
+		PrimitiveMatrix Dw = matrixFactory.makeEye(n, n);
 		
-		BasicMatrix R = matrixFactory.makeEye(n, n)
+		PrimitiveMatrix R = matrixFactory.makeEye(n, n)
 									.add(Dr.multiply(beta))
 									.add(L.multiply(gamma))
 									.invert()
-									.multiplyRight(X);
+									.multiply(X);
 		
 		List<Double> obj = new ArrayList<>();
 		for(int i=0; i<niters; i++) {
 			// update w
-			BasicMatrix W = X.multiplyRight(X.transpose())
+			PrimitiveMatrix W = X.multiply(X.transpose())
 							.add(Dw.multiply(alpha))
 									.invert()
-									.multiplyRight(X.multiplyRight(X.transpose())
-													.subtract(X.multiplyRight(R.transpose())));
-			PhysicalStore<Double> Wtmp = W.multiplyElements(W)
-										.multiplyRight(vector)
-										.toPrimitiveStore();
+									.multiply(X.multiply(X.transpose())
+													.subtract(X.multiply(R.transpose())));
+			PhysicalStore<Double> Wtmp = storeFactory.copy(W.multiplyElements(W)
+										.multiply(vector));
 			Wtmp.modifyAll(PrimitiveFunction.SQRT);
 			PhysicalStore<Double> WtmpCopy = Wtmp.copy();
 			WtmpCopy.modifyAll(PrimitiveFunction.INVERT);
-			Dw = makeDiagonal(PrimitiveMatrix.FACTORY.instantiate(WtmpCopy).multiply(0.5));
+			Dw = makeDiagonal(matrixFactory.copy(WtmpCopy.multiply(0.5)));
 
 			// update r
 			R = matrixFactory.makeEye(n, n)
 					.add(Dr.multiply(beta))
 					.add(L.multiply(gamma))
 					.invert()
-					.multiplyRight(X.subtract(W.transpose()
-												.multiplyRight(X)));
+					.multiply(X.subtract(W.transpose()
+												.multiply(X)));
 			
-			PhysicalStore<Double> Rtmp = R.multiplyElements(R)
-										.multiplyRight(vectorCol)
-										.toPrimitiveStore();
+			PhysicalStore<Double> Rtmp = storeFactory.copy(R.multiplyElements(R)
+										.multiply(vectorCol));
 			Rtmp.modifyAll(PrimitiveFunction.SQRT);
 			PhysicalStore<Double> RtmpCopy = Rtmp.copy();
 			RtmpCopy.modifyAll(PrimitiveFunction.INVERT);
-			Dr = makeDiagonal(PrimitiveMatrix.FACTORY.instantiate(RtmpCopy).multiply(0.5));
-			obj.add(X.subtract(W.transpose().multiplyRight(X)).subtract(R).getFrobeniusNorm().power(2)
-					.add(sum(Wtmp).multiply(alpha).getReal())
-					.add(sum(Rtmp).multiply(beta).getReal())
-					.add(R.transpose().multiplyRight(L).multiplyRight(R).getTrace().multiply(gamma).getReal()).getReal());
+			Dr = makeDiagonal(matrixFactory.copy(RtmpCopy).multiply(0.5));
+		
+			obj.add(X.subtract(W.transpose().multiply(X)).subtract(R).norm()+
+					sum(Wtmp)*alpha+
+					sum(Rtmp)*beta+
+					R.transpose().multiply(L).multiply(R).getTrace().multiply(gamma).get());
 			if(i >= 2 && (Math.abs(obj.get(i)-obj.get(i-1)))<0.001) {
 				break;
 			}
@@ -131,15 +131,16 @@ public class RadarImpl {
 	
 	/**
 	 * Compute the sum over a vector
+	 * @param <N>
 	 * @param matrix
 	 * @return sum
 	 */
 	@SuppressWarnings("unchecked")
-	private static <N> Scalar<? super N> sum(PhysicalStore<? super N> vector) {	
-		Scalar<? super N> scalar = (Scalar<? super N>) storeFactory.getStaticOne();
-		List<N> list = (List<N>) vector.asList();
+	private static Double sum(PhysicalStore<Double> vector) {	
+		Double scalar = 0.0;
+		List<Double> list = (List<Double>) vector.asList();
 		for(int i=0;i<list.size();i++) {
-			scalar.add(list.get(i));
+			scalar += list.get(i);
 		}
 		return scalar;
 	}
@@ -149,9 +150,9 @@ public class RadarImpl {
 	 * @param rowVector
 	 * @return diagonal matrix
 	 */
-	private static BasicMatrix makeDiagonal(BasicMatrix rowVector) {
-		PhysicalStore<Double> matrix = storeFactory.makeZero(rowVector.getRowDim(), rowVector.getRowDim());
-		PhysicalStore<Double> store = rowVector.toPrimitiveStore();
+	private static PrimitiveMatrix makeDiagonal(PrimitiveMatrix rowVector) {
+		PhysicalStore<Double> matrix = storeFactory.makeZero(rowVector.columns().count(), rowVector.columns().count());
+		PhysicalStore<Double> store = storeFactory.copy(rowVector);
 		List<Double> list = store.asList();
 		for(int i=0;i<list.size(); i++) {
 			for(int j=0;j<list.size();j++) {
@@ -159,25 +160,25 @@ public class RadarImpl {
 					matrix.set(i, j, list.get(i));
 			}
 		}
-		return PrimitiveMatrix.FACTORY.instantiate(matrix);
+		return matrixFactory.copy(matrix);
 	}
 	
 	/**
 	 * Print matrix dimensions for debugging purposes
 	 * @param bm
 	 */
-	public static void printSize(BasicMatrix bm) {
-		System.out.println(bm.getRowDim() + "x" + bm.getColDim());
+	public static void printSize(PrimitiveMatrix bm) {
+		System.out.println(bm.rows().count() + "x" + bm.columns().count());
 	}
 	
     /**
      * Print matrix for debugging purposes
      * @param bm
      */
-    public static void printMatrix(BasicMatrix bm) {
-    	PhysicalStore<Double> store = bm.toPrimitiveStore();
-    	for(int i=0;i<store.getRowDim();i++) {
-    		for(int j=0;j<store.getColDim();j++) {
+    public static void printMatrix(PrimitiveMatrix bm) {
+    	PhysicalStore<Double> store = storeFactory.copy(bm);
+    	for(int i=0;i<store.columns().count();i++) {
+    		for(int j=0;j<store.rows().count();j++) {
     			System.out.print(store.get(i, j)+" ");
     		}
     		System.out.println("");
