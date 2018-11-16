@@ -32,14 +32,14 @@ public class Radar {
         double[][] dX = {
                 {4.0, 1.0},
                 {5.0, 1.0},
-                {3.0, 1.0},
+                {15.0, 1.0},
                 {5.0, 1.0}
             };
 		
         // hyperparameters
         double alpha = 0.01;
         double beta = 0.01;
-        double gamma = 0.5;
+        double gamma = 0.1;
         
         PrimitiveMatrix X = matrixFactory.rows(dX);
         PrimitiveMatrix A = matrixFactory.rows(dA);
@@ -48,14 +48,16 @@ public class Radar {
         int niters = 20;
     	
         // return top m instances
-        int m = 11;
+        int m = 2;
         
         // get the anomaly score list for the graph
-		
-    	System.out.println(Arrays.toString(RadarImpl.scoreFromRadar(X, A, alpha, beta, gamma, niters, m).toArray()));
+	/*	List<Node> score = RadarImpl.scoreFromRadar(X, A, alpha, beta, gamma, niters, m);
+    	
+		// print the score list
+		System.out.println(Arrays.toString(score.toArray()));*/
 
 		
-	/*	List<DataLog> data = LogFileParser.dataFromLogFile("onos-log-2.txt");
+		List<DataLog> data = LogFileParser.dataFromLogFile("onos-log-2.txt");
 		
 		List<List<Node>> scores = new ArrayList<>();
 		Iterator<DataLog> it = data.iterator();
@@ -75,7 +77,7 @@ public class Radar {
 		System.out.println("Average value is: " + avg(scores));
 		System.out.println("Median value is: " + median(scores));
 		System.out.println("Minimum value is: " + min(scores));
-		System.out.println(createHistogram(scores, 10, 50));*/
+		System.out.println(createHistogram(scores, 10, 50));
         
   	}
     

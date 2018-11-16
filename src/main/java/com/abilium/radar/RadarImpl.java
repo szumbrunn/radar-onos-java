@@ -39,16 +39,16 @@ public class RadarImpl {
 	 * @return ordered score list
 	 */
 	public static List<Node> scoreFromRadar(PrimitiveMatrix X, PrimitiveMatrix A, double alpha, double beta, double gamma, int niters, int m) {
-		long n = X.columns().count();
+		long n = X.rows().count();
 		PrimitiveMatrix colVector = matrixFactory.makeZero(n, 1).add(1); // make 1 row vector
 		
 		PrimitiveMatrix R = RadarImpl.radar(X, A, alpha, beta, gamma, niters);
 
-		List<Double> scoreList = R.multiplyElements(R)
-								.multiply(colVector).getSingularValues();
+		double[] scoreList = R.multiplyElements(R)
+								.multiply(colVector).toRawCopy1D();
 		List<Node> score = new ArrayList<>();
-		for(int i=0;i<scoreList.size();i++) {
- 			score.add(new Node(i,scoreList.get(i)));
+		for(int i=0;i<scoreList.length;i++) {
+ 			score.add(new Node(i,scoreList[i]));
 		}
 		Collections.sort(score);
 		if(m>score.size()) {
@@ -69,10 +69,12 @@ public class RadarImpl {
 	 */
 	public static PrimitiveMatrix radar(PrimitiveMatrix X, PrimitiveMatrix A, double alpha, double beta, double gamma, int niters) {
 		
-		long n = A.rows().count();
-		long m = A.columns().count();
+		long n = X.columns().count();
+		long m = X.rows().count();
 		PrimitiveMatrix vector = matrixFactory.makeZero(n, 1).add(1); // make 1 row vector
 		PrimitiveMatrix vectorCol = matrixFactory.makeZero(m, 1).add(1); // make 1 row vector
+		
+		
 		
 		PrimitiveMatrix D = makeDiagonal(A.multiply(vector));
 		
@@ -87,6 +89,7 @@ public class RadarImpl {
 									.invert()
 									.multiply(X);
 		
+		
 		List<Double> obj = new ArrayList<>();
 		for(int i=0; i<niters; i++) {
 			// update w
@@ -95,13 +98,18 @@ public class RadarImpl {
 									.invert()
 									.multiply(X.multiply(X.transpose())
 													.subtract(X.multiply(R.transpose())));
+			
+			
 			PhysicalStore<Double> Wtmp = storeFactory.copy(W.multiplyElements(W)
 										.multiply(vector));
 			Wtmp.modifyAll(PrimitiveFunction.SQRT);
 			PhysicalStore<Double> WtmpCopy = Wtmp.copy();
 			WtmpCopy.modifyAll(PrimitiveFunction.INVERT);
+			
 			Dw = makeDiagonal(matrixFactory.copy(WtmpCopy.multiply(0.5)));
 
+			
+			
 			// update r
 			R = matrixFactory.makeEye(n, n)
 					.add(Dr.multiply(beta))
@@ -112,6 +120,8 @@ public class RadarImpl {
 			
 			PhysicalStore<Double> Rtmp = storeFactory.copy(R.multiplyElements(R)
 										.multiply(vectorCol));
+		
+			
 			Rtmp.modifyAll(PrimitiveFunction.SQRT);
 			PhysicalStore<Double> RtmpCopy = Rtmp.copy();
 			RtmpCopy.modifyAll(PrimitiveFunction.INVERT);
